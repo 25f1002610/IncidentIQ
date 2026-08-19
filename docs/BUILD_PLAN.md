@@ -6,8 +6,8 @@
 - [x] **Phase 3 — Operational Data Simulator (Synthetic Production Infrastructure)**
 - [x] **Phase 4 — First AI Agent (Single-Agent Investigation Engine)**
 - [x] **Phase 5 — Controlled Tool Calling Engine (Logs, Metrics, GitHub, History tools)**
-- [ ] **Phase 6 — LangGraph Workflow Orchestration**
-- [ ] **Phase 7 — Multi-Agent System Architecture**
+- [x] **Phase 6 — LangGraph Workflow Orchestration**
+- [x] **Phase 7 — Multi-Agent System Architecture (Supervisor, Logs, Metrics, GitHub, Root Cause, Reviewer)**
 - [ ] **Phase 8 — RAG Knowledge Base Engine (pgvector)**
 - [ ] **Phase 9 — Grounded Reasoning & Evidence Correlator**
 - [ ] **Phase 10 — Human-in-the-Loop Approval Workflow**
