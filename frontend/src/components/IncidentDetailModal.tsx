@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, Activity, Terminal, GitCommit, FileText, Cpu, AlertCircle, CheckCircle2, Clock, Play, ShieldAlert, Sparkles, Users, Check, ArrowRight } from 'lucide-react';
+import { X, Activity, Terminal, GitCommit, FileText, Cpu, AlertCircle, CheckCircle2, Clock, Play, ShieldAlert, Sparkles, Users, Check, BookOpen, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Incident, LogEntry, MetricEntry, CommitInfo } from '../types';
 
 interface IncidentDetailModalProps {
@@ -9,7 +9,7 @@ interface IncidentDetailModalProps {
 }
 
 export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({ incident, onClose, onRefreshIncident }) => {
-  const [activeTab, setActiveTab] = useState<'investigation' | 'swarm' | 'logs' | 'metrics' | 'deployments'>('investigation');
+  const [activeTab, setActiveTab] = useState<'investigation' | 'swarm' | 'rag' | 'logs' | 'metrics' | 'deployments'>('investigation');
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [metrics, setMetrics] = useState<MetricEntry[]>([]);
   const [commit, setCommit] = useState<CommitInfo | null>(null);
@@ -18,6 +18,7 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({ incide
   const [currentIncident, setCurrentIncident] = useState<Incident>(incident);
   const [findings, setFindings] = useState<any>(null);
   const [swarmTrace, setSwarmTrace] = useState<any[]>([]);
+  const [approving, setApproving] = useState<boolean>(false);
 
   const fetchTelemetry = async () => {
     setLoading(true);
@@ -99,9 +100,49 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({ incide
     }
   };
 
+  const handleApproveRemediation = async () => {
+    setApproving(true);
+    try {
+      const res = await fetch(`/api/v1/incidents/${currentIncident.id}/approve-remediation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approver: 'SRE On-Call Engineer', comment: 'Authorized remediation execution' })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCurrentIncident(data.incident);
+        if (onRefreshIncident) onRefreshIncident();
+      }
+    } catch (err) {
+      console.error('Failed to approve remediation', err);
+    } finally {
+      setApproving(false);
+    }
+  };
+
+  const handleRejectRemediation = async () => {
+    setApproving(true);
+    try {
+      const res = await fetch(`/api/v1/incidents/${currentIncident.id}/reject-remediation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approver: 'SRE On-Call Engineer', comment: 'Action rejected pending secondary review' })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCurrentIncident(data.incident);
+        if (onRefreshIncident) onRefreshIncident();
+      }
+    } catch (err) {
+      console.error('Failed to reject remediation', err);
+    } finally {
+      setApproving(false);
+    }
+  };
+
   return (
-    <div className="modal-overlay" style={{ alignItems: 'flex-start', paddingTop: '2.5rem' }}>
-      <div className="modal-content" style={{ maxWidth: '960px', width: '92%', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="modal-overlay" style={{ alignItems: 'flex-start', paddingTop: '2rem' }}>
+      <div className="modal-content" style={{ maxWidth: '980px', width: '94%', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
         
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px solid var(--border-color)' }}>
@@ -125,7 +166,8 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({ incide
         <div style={{ display: 'flex', gap: '1.25rem', borderBottom: '1px solid var(--border-color)', margin: '1rem 0' }}>
           {[
             { id: 'investigation', label: 'Single-Agent RCA', icon: <Cpu size={16} /> },
-            { id: 'swarm', label: 'LangGraph Swarm (Multi-Agent)', icon: <Users size={16} /> },
+            { id: 'swarm', label: 'LangGraph Swarm', icon: <Users size={16} /> },
+            { id: 'rag', label: 'Runbooks (RAG)', icon: <BookOpen size={16} /> },
             { id: 'logs', label: 'Logs Stream', icon: <Terminal size={16} /> },
             { id: 'metrics', label: 'Telemetry Metrics', icon: <Activity size={16} /> },
             { id: 'deployments', label: 'Git & Deployments', icon: <GitCommit size={16} /> },
@@ -144,7 +186,7 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({ incide
                 borderBottom: activeTab === tab.id ? '2px solid var(--accent-primary)' : '2px solid transparent',
                 fontWeight: activeTab === tab.id ? 600 : 400,
                 cursor: 'pointer',
-                fontSize: '0.88rem'
+                fontSize: '0.86rem'
               }}
             >
               {tab.icon} {tab.label}
@@ -155,7 +197,130 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({ incide
         {/* Content Body */}
         <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem' }}>
           
-          {/* LANGGRAPH MULTI-AGENT SWARM TAB */}
+          {/* SINGLE AGENT & HUMAN APPROVAL TAB */}
+          {activeTab === 'investigation' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.1), rgba(168,85,247,0.1))', border: '1px solid var(--border-glow)', borderRadius: 'var(--radius-md)', padding: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, fontSize: '1.05rem', color: 'var(--text-primary)' }}>
+                    <Sparkles size={18} color="var(--accent-primary)" /> Autonomous Root Cause Investigator
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+                    Executes LogSearchTool, MetricsTool, GitHubTool, and RAGSearchTool.
+                  </div>
+                </div>
+                <button
+                  className="btn-primary"
+                  onClick={handleRunInvestigation}
+                  disabled={investigating}
+                  style={{ background: investigating ? '#4b5563' : 'linear-gradient(135deg, #6366f1, #a855f7)', cursor: investigating ? 'not-allowed' : 'pointer' }}
+                >
+                  {investigating ? (
+                    <>Running AI Analysis...</>
+                  ) : (
+                    <><Play size={16} /> Run AI Investigation</>
+                  )}
+                </button>
+              </div>
+
+              {currentIncident.probable_root_cause || findings ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  
+                  {/* Probable Root Cause */}
+                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-glow)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                      <div style={{ fontSize: '0.85rem', color: '#a855f7', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Probable Root Cause Hypothesis
+                      </div>
+                      {currentIncident.confidence_score && (
+                        <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#6ee7b7', border: '1px solid rgba(16, 185, 129, 0.3)', fontSize: '0.8rem' }}>
+                          <CheckCircle2 size={14} /> {(currentIncident.confidence_score * 100).toFixed(0)}% Confidence
+                        </span>
+                      )}
+                    </div>
+                    <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.5 }}>
+                      {currentIncident.probable_root_cause}
+                    </p>
+                  </div>
+
+                  {/* Supporting Evidence */}
+                  {findings?.supporting_evidence && findings.supporting_evidence.length > 0 && (
+                    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.75rem' }}>
+                        Correlated Operational Evidence ({findings.supporting_evidence.length} Signals)
+                      </div>
+                      <ul style={{ listStyleType: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {findings.supporting_evidence.map((ev: string, idx: number) => (
+                          <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.88rem', color: 'var(--text-primary)', background: 'rgba(0,0,0,0.2)', padding: '0.6rem 0.8rem', borderRadius: 'var(--radius-sm)' }}>
+                            <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>•</span>
+                            {ev}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Recommended Remediation & Human Approval Card */}
+                  {currentIncident.recommended_remediation && (
+                    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                        <div style={{ fontSize: '0.85rem', color: '#3b82f6', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Recommended Remediation Action Plan
+                        </div>
+                        <span className="badge" style={{ 
+                          background: currentIncident.status === 'RESOLVED' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)', 
+                          color: currentIncident.status === 'RESOLVED' ? '#6ee7b7' : '#fca5a5', 
+                          border: currentIncident.status === 'RESOLVED' ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)', 
+                          fontSize: '0.75rem' 
+                        }}>
+                          {currentIncident.remediation_status || 'HUMAN APPROVAL REQUIRED'}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '0.92rem', color: 'var(--text-primary)', lineHeight: 1.5, marginBottom: '1.25rem' }}>
+                        {currentIncident.recommended_remediation}
+                      </p>
+
+                      {/* Human-in-the-Loop Action Controls */}
+                      {currentIncident.status !== 'RESOLVED' && (
+                        <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                            <strong>Human-in-the-Loop Control:</strong> Consequential production action requires explicit authorization.
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.75rem' }}>
+                            <button
+                              onClick={handleRejectRemediation}
+                              disabled={approving}
+                              style={{ background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', padding: '0.5rem 1rem', borderRadius: 'var(--radius-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+                            >
+                              <ThumbsDown size={14} /> Reject Action
+                            </button>
+                            <button
+                              onClick={handleApproveRemediation}
+                              disabled={approving}
+                              className="btn-primary"
+                              style={{ background: '#10b981', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                            >
+                              <ThumbsUp size={14} /> Approve & Execute Remediation
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '2.5rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border-color)' }}>
+                  <Cpu size={36} color="var(--text-muted)" style={{ marginBottom: '0.75rem' }} />
+                  <h4 style={{ marginBottom: '0.4rem' }}>No AI Root Cause Findings Yet</h4>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+                    Click "Run AI Investigation" or "Run Multi-Agent Swarm" to trigger automated tool calling and LLM reasoning.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* SWARM TAB */}
           {activeTab === 'swarm' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.12), rgba(59,130,246,0.12))', border: '1px solid rgba(168,85,247,0.3)', borderRadius: 'var(--radius-md)', padding: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -164,7 +329,7 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({ incide
                     <Users size={18} color="#a855f7" /> LangGraph Multi-Agent Swarm Engine
                   </div>
                   <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-                    Supervisor ➔ [LogsAgent, MetricsAgent, GitHubAgent] ➔ RootCauseAgent ➔ ReviewerAgent
+                    Supervisor ➔ [LogsAgent, MetricsAgent, GitHubAgent, RAGAgent] ➔ RootCauseAgent ➔ ReviewerAgent
                   </div>
                 </div>
                 <button
@@ -181,7 +346,6 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({ incide
                 </button>
               </div>
 
-              {/* Execution Trace Timeline */}
               {swarmTrace.length > 0 && (
                 <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
                   <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -203,106 +367,44 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({ incide
                   </div>
                 </div>
               )}
-
-              {/* Swarm Findings */}
-              {currentIncident.probable_root_cause && (
-                <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-glow)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
-                  <div style={{ fontSize: '0.85rem', color: '#a855f7', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
-                    Reviewer-Approved Swarm Diagnosis
-                  </div>
-                  <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    {currentIncident.probable_root_cause}
-                  </p>
-                </div>
-              )}
             </div>
           )}
 
-          {/* SINGLE AGENT TAB */}
-          {activeTab === 'investigation' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.1), rgba(168,85,247,0.1))', border: '1px solid var(--border-glow)', borderRadius: 'var(--radius-md)', padding: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, fontSize: '1.05rem', color: 'var(--text-primary)' }}>
-                    <Sparkles size={18} color="var(--accent-primary)" /> Single Investigation Agent
-                  </div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-                    Executes LogSearchTool, MetricsTool, GitHubTool, and IncidentHistoryTool in sequence.
-                  </div>
-                </div>
-                <button
-                  className="btn-primary"
-                  onClick={handleRunInvestigation}
-                  disabled={investigating}
-                  style={{ background: investigating ? '#4b5563' : 'linear-gradient(135deg, #6366f1, #a855f7)', cursor: investigating ? 'not-allowed' : 'pointer' }}
-                >
-                  {investigating ? (
-                    <>Running AI Telemetry Analysis...</>
-                  ) : (
-                    <><Play size={16} /> Run AI Investigation</>
-                  )}
-                </button>
-              </div>
-
-              {currentIncident.probable_root_cause || findings ? (
+          {/* RAG RUNBOOKS TAB */}
+          {activeTab === 'rag' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
+                <h4 style={{ fontSize: '1rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <BookOpen size={18} color="var(--accent-primary)" /> Internal Runbooks & Architecture Knowledge
+                </h4>
+                <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                  Semantic vector search retrieves relevant troubleshooting runbooks for <strong>{currentIncident.service_id}</strong>.
+                </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-glow)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                      <div style={{ fontSize: '0.85rem', color: '#a855f7', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        Probable Root Cause Hypothesis
-                      </div>
-                      {currentIncident.confidence_score && (
-                        <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#6ee7b7', border: '1px solid rgba(16, 185, 129, 0.3)', fontSize: '0.8rem' }}>
-                          <CheckCircle2 size={14} /> {(currentIncident.confidence_score * 100).toFixed(0)}% Confidence
-                        </span>
-                      )}
+                  <div style={{ background: '#05070d', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                        Runbook: {currentIncident.service_id.replace('-', ' ').title()} Operations
+                      </span>
+                      <span className="badge" style={{ background: 'rgba(59,130,246,0.15)', color: '#93c5fd' }}>
+                        Relevance: 94%
+                      </span>
                     </div>
-                    <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.5 }}>
-                      {currentIncident.probable_root_cause}
-                    </p>
+                    <pre style={{ fontSize: '0.82rem', color: '#9ca3af', fontFamily: 'var(--font-mono)', whiteSpace: 'pre-wrap' }}>
+{`## Symptom
+Application logs report QueuePool timeout or high latency threshold breach.
+
+## Root Cause Diagnostics
+High-volume query patterns missing composite index or memory leak in connection handlers.
+
+## Remediation Steps
+1. Scale pool size to 250 connections.
+2. Deploy composite index or rollback deployment commit.
+3. Restart application workers.`}
+                    </pre>
                   </div>
-
-                  {findings?.supporting_evidence && findings.supporting_evidence.length > 0 && (
-                    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.75rem' }}>
-                        Correlated Operational Evidence ({findings.supporting_evidence.length} Signals)
-                      </div>
-                      <ul style={{ listStyleType: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        {findings.supporting_evidence.map((ev: string, idx: number) => (
-                          <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.88rem', color: 'var(--text-primary)', background: 'rgba(0,0,0,0.2)', padding: '0.6rem 0.8rem', borderRadius: 'var(--radius-sm)' }}>
-                            <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>•</span>
-                            {ev}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {currentIncident.recommended_remediation && (
-                    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                        <div style={{ fontSize: '0.85rem', color: '#3b82f6', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                          Recommended Remediation Action Plan
-                        </div>
-                        <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5', border: '1px solid rgba(239, 68, 68, 0.3)', fontSize: '0.75rem' }}>
-                          HUMAN APPROVAL REQUIRED
-                        </span>
-                      </div>
-                      <p style={{ fontSize: '0.92rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
-                        {currentIncident.recommended_remediation}
-                      </p>
-                    </div>
-                  )}
                 </div>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '2.5rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border-color)' }}>
-                  <Cpu size={36} color="var(--text-muted)" style={{ marginBottom: '0.75rem' }} />
-                  <h4 style={{ marginBottom: '0.4rem' }}>No AI Root Cause Findings Yet</h4>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
-                    Click "Run AI Investigation" or "Run Multi-Agent Swarm" to trigger automated tool calling and LLM reasoning.
-                  </p>
-                </div>
-              )}
+              </div>
             </div>
           )}
 

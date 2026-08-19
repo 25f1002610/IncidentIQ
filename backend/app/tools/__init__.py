@@ -3,6 +3,7 @@ from app.tools.log_tool import LogSearchTool
 from app.tools.metrics_tool import MetricsTool
 from app.tools.github_tool import GitHubTool
 from app.tools.incident_history_tool import IncidentHistoryTool
+from app.tools.rag_tool import RAGSearchTool
 
 __all__ = [
     "BaseTool",
@@ -10,4 +11,5 @@ __all__ = [
     "MetricsTool",
     "GitHubTool",
     "IncidentHistoryTool",
+    "RAGSearchTool",
 ]
