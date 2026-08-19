@@ -39,3 +39,32 @@ export interface IncidentListResponse {
   total: number;
   incidents: Incident[];
 }
+
+export interface LogEntry {
+  id: string;
+  timestamp: string;
+  service: string;
+  level: 'INFO' | 'WARN' | 'ERROR';
+  message: string;
+}
+
+export interface MetricEntry {
+  timestamp: string;
+  [key: string]: number | string;
+}
+
+export interface CommitInfo {
+  hash: string;
+  author: string;
+  message: string;
+  timestamp: string;
+  diff: string;
+}
+
+export interface ScenarioInfo {
+  id: string;
+  title: string;
+  service_id: string;
+  severity: IncidentSeverity;
+  description: string;
+}

@@ -1,15 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { ShieldAlert, AlertTriangle, Activity, CheckCircle2, Plus, Clock, Cpu } from 'lucide-react';
-import { Incident, IncidentSeverity, IncidentStatus } from './types';
+import { ShieldAlert, AlertTriangle, Activity, CheckCircle2, Plus, Clock, Cpu, Zap } from 'lucide-react';
+import { Incident, IncidentSeverity, IncidentStatus, ScenarioInfo } from './types';
+import { IncidentDetailModal } from './components/IncidentDetailModal';
 
 export const App: React.FC = () => {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [showModal, setShowModal] = useState<boolean>(false);
+  const [showSimModal, setShowSimModal] = useState<boolean>(false);
+  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
+  
+  // Create Manual Incident state
   const [formTitle, setFormTitle] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formService, setFormService] = useState('auth-service');
   const [formSeverity, setFormSeverity] = useState<IncidentSeverity>('HIGH');
+
+  // Simulator scenarios
+  const [scenarios, setScenarios] = useState<ScenarioInfo[]>([]);
+  const [selectedScenario, setSelectedScenario] = useState<string>('DB_CONN_EXHAUSTION');
 
   const fetchIncidents = async () => {
     try {
@@ -25,8 +34,21 @@ export const App: React.FC = () => {
     }
   };
 
+  const fetchScenarios = async () => {
+    try {
+      const res = await fetch('/api/v1/simulator/scenarios');
+      if (res.ok) {
+        const data = await res.json();
+        setScenarios(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch scenarios', err);
+    }
+  };
+
   useEffect(() => {
     fetchIncidents();
+    fetchScenarios();
   }, []);
 
   const handleCreateIncident = async (e: React.FormEvent) => {
@@ -53,6 +75,24 @@ export const App: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to create incident', err);
+    }
+  };
+
+  const handleTriggerScenario = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/v1/simulator/trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scenario_type: selectedScenario }),
+      });
+
+      if (res.ok) {
+        setShowSimModal(false);
+        fetchIncidents();
+      }
+    } catch (err) {
+      console.error('Failed to trigger scenario', err);
     }
   };
 
@@ -128,9 +168,14 @@ export const App: React.FC = () => {
         {/* Section Header */}
         <div className="section-header">
           <h2 className="section-title">Incidents Queue</h2>
-          <button className="btn-primary" onClick={() => setShowModal(true)}>
-            <Plus size={16} /> New Incident
-          </button>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button className="btn-primary" style={{ background: 'linear-gradient(135deg, #f97316, #ef4444)' }} onClick={() => setShowSimModal(true)}>
+              <Zap size={16} /> Simulate Production Outage
+            </button>
+            <button className="btn-primary" onClick={() => setShowModal(true)}>
+              <Plus size={16} /> New Incident
+            </button>
+          </div>
         </div>
 
         {/* Incidents List */}
@@ -142,14 +187,17 @@ export const App: React.FC = () => {
           <div style={{ textAlign: 'center', padding: '3rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
             <ShieldAlert size={40} color="var(--text-muted)" style={{ marginBottom: '1rem' }} />
             <h3 style={{ marginBottom: '0.5rem' }}>No Active Production Incidents</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-              All services are operating nominally. Click "New Incident" to report or simulate an incident.
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
+              All services are operating normally. Click "Simulate Production Outage" to trigger an infrastructure failure test.
             </p>
+            <button className="btn-primary" style={{ margin: '0 auto', background: 'linear-gradient(135deg, #f97316, #ef4444)' }} onClick={() => setShowSimModal(true)}>
+              <Zap size={16} /> Simulate Outage
+            </button>
           </div>
         ) : (
           <div className="incidents-container">
             {incidents.map((incident) => (
-              <div key={incident.id} className="incident-card">
+              <div key={incident.id} className="incident-card" onClick={() => setSelectedIncident(incident)}>
                 <div className="incident-header-line">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <span className="incident-id">{incident.id}</span>
@@ -178,7 +226,64 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      {/* New Incident Modal */}
+      {/* Incident Detail Drawer/Modal */}
+      {selectedIncident && (
+        <IncidentDetailModal
+          incident={selectedIncident}
+          onClose={() => setSelectedIncident(null)}
+        />
+      )}
+
+      {/* Simulator Outage Trigger Modal */}
+      {showSimModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3 style={{ marginBottom: '1.25rem', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Zap size={20} color="#f97316" /> Simulate Production Outage
+            </h3>
+            <form onSubmit={handleTriggerScenario}>
+              <div className="form-group">
+                <label className="form-label">Select Failure Scenario</label>
+                <select
+                  className="form-select"
+                  value={selectedScenario}
+                  onChange={(e) => setSelectedScenario(e.target.value)}
+                >
+                  {scenarios.map(sc => (
+                    <option key={sc.id} value={sc.id}>
+                      [{sc.severity}] {sc.title} ({sc.service_id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {scenarios.find(s => s.id === selectedScenario) && (
+                <div style={{ background: 'rgba(249, 115, 22, 0.1)', border: '1px solid rgba(249, 115, 22, 0.25)', padding: '1rem', borderRadius: 'var(--radius-sm)', marginBottom: '1.25rem', fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                  <strong>Scenario Overview:</strong>
+                  <p style={{ marginTop: '0.3rem', color: 'var(--text-secondary)' }}>
+                    {scenarios.find(s => s.id === selectedScenario)?.description}
+                  </p>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+                <button
+                  type="button"
+                  style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '0.6rem 1.2rem', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}
+                  onClick={() => setShowSimModal(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary" style={{ background: 'linear-gradient(135deg, #f97316, #ef4444)' }}>
+                  Trigger Scenario
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* New Manual Incident Modal */}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content">
