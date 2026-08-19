@@ -1,0 +1,25 @@
+# IncidentIQ — Phase-Wise Build Tracker
+
+- [x] **Phase 0 — Foundation & Repository Setup**
+- [x] **Phase 1 — FastAPI Backend & PostgreSQL Integration**
+- [ ] **Phase 2 — Incident Management UI**
+- [ ] **Phase 3 — Operational Data Simulation**
+- [ ] **Phase 4 — First AI Agent (Single-Agent Investigation)**
+- [ ] **Phase 5 — Controlled Tool Calling**
+- [ ] **Phase 6 — LangGraph Workflow Orchestration**
+- [ ] **Phase 7 — Multi-Agent System Architecture**
+- [ ] **Phase 8 — RAG Knowledge Base Engine (pgvector)**
+- [ ] **Phase 9 — Grounded Reasoning & Evidence Correlator**
+- [ ] **Phase 10 — Human-in-the-Loop Approval Workflow**
+- [ ] **Phase 11 — Remediation Execution Tools**
+- [ ] **Phase 12 — Redis & Async Background Workers**
+- [ ] **Phase 13 — Self-Observability (Prometheus + Grafana + OpenTelemetry)**
+- [ ] **Phase 14 — Security, RBAC & Secret Management**
+- [ ] **Phase 15 — AI Benchmark & Evaluation Pipeline**
+- [ ] **Phase 16 — Docker Productionization**
+- [ ] **Phase 17 — CI/CD Pipeline**
+- [ ] **Phase 18 — Cloud Readiness & AWS Architecture**
+- [ ] **Phase 19 — AWS Cost Optimization**
+- [ ] **Phase 20 — Production Hardening**
+- [ ] **Phase 21 — Final Benchmark & Reporting**
+- [ ] **Phase 22 — Portfolio Documentation & Walkthrough**
