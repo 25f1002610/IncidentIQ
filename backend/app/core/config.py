@@ -9,8 +9,8 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
     
-    # Database Settings
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/incidentiq"
+    # Database Settings (Defaults to local SQLite for zero-setup dev, or PostgreSQL when set in env)
+    DATABASE_URL: str = "sqlite+aiosqlite:///./incidentiq.db"
     
     # Redis Settings
     REDIS_URL: str = "redis://localhost:6379/0"
