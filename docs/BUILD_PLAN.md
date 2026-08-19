@@ -4,8 +4,8 @@
 - [x] **Phase 1 — FastAPI Backend & PostgreSQL Integration**
 - [x] **Phase 2 — Incident Management UI & Inspection Modal**
 - [x] **Phase 3 — Operational Data Simulator (Synthetic Production Infrastructure)**
-- [ ] **Phase 4 — First AI Agent (Single-Agent Investigation)**
-- [ ] **Phase 5 — Controlled Tool Calling**
+- [x] **Phase 4 — First AI Agent (Single-Agent Investigation Engine)**
+- [x] **Phase 5 — Controlled Tool Calling Engine (Logs, Metrics, GitHub, History tools)**
 - [ ] **Phase 6 — LangGraph Workflow Orchestration**
 - [ ] **Phase 7 — Multi-Agent System Architecture**
 - [ ] **Phase 8 — RAG Knowledge Base Engine (pgvector)**
