@@ -11,8 +11,8 @@
 - [x] **Phase 8 — RAG Knowledge Base Engine (pgvector)**
 - [x] **Phase 9 — Grounded Reasoning & Evidence Correlator**
 - [x] **Phase 10 — Human-in-the-Loop Approval Workflow**
-- [ ] **Phase 11 — Remediation Execution Tools**
-- [ ] **Phase 12 — Redis & Async Background Workers**
+- [x] **Phase 11 — Remediation Execution Tools (GitHub PR, Issue, Service Restart, Config Patch)**
+- [x] **Phase 12 — Redis & Async Background Workers**
 - [ ] **Phase 13 — Self-Observability (Prometheus + Grafana + OpenTelemetry)**
 - [ ] **Phase 14 — Security, RBAC & Secret Management**
 - [ ] **Phase 15 — AI Benchmark & Evaluation Pipeline**
