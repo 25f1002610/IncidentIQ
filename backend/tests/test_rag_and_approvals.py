@@ -49,5 +49,5 @@ async def test_human_approval_workflow_api(client: AsyncClient):
     data = appr_resp.json()
 
     assert data["incident"]["status"] == "RESOLVED"
-    assert "APPROVED & EXECUTED" in data["incident"]["remediation_status"]
+    assert "APPROVED BY" in data["incident"]["remediation_status"]
     assert data["approval_status"] == "APPROVED"

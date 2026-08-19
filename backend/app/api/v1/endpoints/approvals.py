@@ -49,9 +49,15 @@ async def approve_remediation_action(
 
     # Transition state to REMEDIATING -> RESOLVED
     incident.status = IncidentStatus.RESOLVED
-    incident.remediation_status = f"APPROVED & EXECUTED BY {request.approver.upper()}"
     incident.resolved_at = datetime.utcnow()
     incident.updated_at = datetime.utcnow()
+
+    # Execute approved remediation actions
+    from app.remediation import RemediationExecutor
+    executor = RemediationExecutor()
+    remediation_res = await executor.execute_remediation(incident)
+
+    incident.remediation_status = f"APPROVED BY {request.approver.upper()} ({remediation_res['total_actions']} ACTIONS EXECUTED)"
 
     # Record Audit Log
     audit_event = AuditEvent(
