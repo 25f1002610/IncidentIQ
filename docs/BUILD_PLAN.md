@@ -8,9 +8,9 @@
 - [x] **Phase 5 — Controlled Tool Calling Engine (Logs, Metrics, GitHub, History tools)**
 - [x] **Phase 6 — LangGraph Workflow Orchestration**
 - [x] **Phase 7 — Multi-Agent System Architecture (Supervisor, Logs, Metrics, GitHub, Root Cause, Reviewer)**
-- [ ] **Phase 8 — RAG Knowledge Base Engine (pgvector)**
-- [ ] **Phase 9 — Grounded Reasoning & Evidence Correlator**
-- [ ] **Phase 10 — Human-in-the-Loop Approval Workflow**
+- [x] **Phase 8 — RAG Knowledge Base Engine (pgvector)**
+- [x] **Phase 9 — Grounded Reasoning & Evidence Correlator**
+- [x] **Phase 10 — Human-in-the-Loop Approval Workflow**
 - [ ] **Phase 11 — Remediation Execution Tools**
 - [ ] **Phase 12 — Redis & Async Background Workers**
 - [ ] **Phase 13 — Self-Observability (Prometheus + Grafana + OpenTelemetry)**
