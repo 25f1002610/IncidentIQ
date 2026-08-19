@@ -2,8 +2,8 @@
 
 - [x] **Phase 0 — Foundation & Repository Setup**
 - [x] **Phase 1 — FastAPI Backend & PostgreSQL Integration**
-- [ ] **Phase 2 — Incident Management UI**
-- [ ] **Phase 3 — Operational Data Simulation**
+- [x] **Phase 2 — Incident Management UI & Inspection Modal**
+- [x] **Phase 3 — Operational Data Simulator (Synthetic Production Infrastructure)**
 - [ ] **Phase 4 — First AI Agent (Single-Agent Investigation)**
 - [ ] **Phase 5 — Controlled Tool Calling**
 - [ ] **Phase 6 — LangGraph Workflow Orchestration**
