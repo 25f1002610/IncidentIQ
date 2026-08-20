@@ -6,6 +6,8 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "IncidentIQ"
     VERSION: str = "0.1.0"
     API_V1_STR: str = "/api/v1"
+    SECRET_KEY: str = "SECRET_DEV_KEY_INCIDENTIQ_SUPER_SAFE_CHANGE_IN_PROD_12345"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
     

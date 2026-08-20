@@ -1,0 +1,29 @@
+[
+  {
+    "id": "EVAL-001",
+    "scenario_type": "DB_CONN_EXHAUSTION",
+    "title": "PostgreSQL Connection Pool Exhaustion",
+    "service_id": "user-db-service",
+    "expected_root_cause_keywords": ["degradation", "operational", "service", "user-db-service"],
+    "expected_evidence_keywords": ["QueuePool", "80%", "b7e2f1a", "service", "citation"],
+    "expected_risk_level": "MEDIUM"
+  },
+  {
+    "id": "EVAL-002",
+    "scenario_type": "BAD_DEPLOY_MEMORY_LEAK",
+    "title": "Unclosed Session Memory Leak on Auth Service",
+    "service_id": "auth-service",
+    "expected_root_cause_keywords": ["degradation", "operational", "service", "auth-service"],
+    "expected_evidence_keywords": ["heap", "OOMKilled", "a8f9c12", "service", "citation"],
+    "expected_risk_level": "HIGH"
+  },
+  {
+    "id": "EVAL-003",
+    "scenario_type": "EXTERNAL_API_TIMEOUT",
+    "title": "Stripe Gateway Latency Spike & 504 Timeouts",
+    "service_id": "payment-service",
+    "expected_root_cause_keywords": ["degradation", "operational", "service", "payment-service"],
+    "expected_evidence_keywords": ["ReadTimeout", "504", "latency", "service", "citation"],
+    "expected_risk_level": "LOW"
+  }
+]

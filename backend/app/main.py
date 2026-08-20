@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.api import api_router
 from app.core.config import settings
 from app.core.database import init_db
+from app.core.metrics import metrics_router
 
 
 @asynccontextmanager
@@ -35,8 +36,9 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_headers=["*"],
     )
 
-# Include API v1 router
+# Include API v1 router and metrics router
 app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(metrics_router)
 
 
 @app.get("/")
