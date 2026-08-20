@@ -47,6 +47,41 @@ async def list_services(db: AsyncSession = Depends(get_db)):
     return result.scalars().all()
 
 
+@router.post("/incidents/webhook", response_model=IncidentRead, status_code=status.HTTP_201_CREATED)
+async def ingest_external_incident_webhook(
+    incident_in: IncidentCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    """External Webhook Endpoint: Receives real-time exceptions from external microservices."""
+    service = await db.get(Service, incident_in.service_id)
+    if not service:
+        service = Service(
+            id=incident_in.service_id,
+            name=incident_in.service_id.replace("-", " ").title(),
+            description=f"Auto-discovered service entry for {incident_in.service_id}"
+        )
+        db.add(service)
+        await db.flush()
+
+    incident_id = f"INC-{uuid.uuid4().hex[:8].upper()}"
+    incident = Incident(
+        id=incident_id,
+        title=incident_in.title,
+        description=incident_in.description,
+        service_id=incident_in.service_id,
+        severity=incident_in.severity,
+        status=IncidentStatus.OPEN,
+        detected_at=datetime.utcnow()
+    )
+    db.add(incident)
+    await db.commit()
+
+    result = await db.execute(
+        select(Incident).options(selectinload(Incident.service)).where(Incident.id == incident_id)
+    )
+    return result.scalar_one()
+
+
 @router.post("/incidents", response_model=IncidentRead, status_code=status.HTTP_201_CREATED)
 async def create_incident(
     incident_in: IncidentCreate,
