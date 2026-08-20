@@ -1,55 +1,22 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: pgvector/pgvector:pg16
-    container_name: incidentiq-postgres
-    restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: incidentiq
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d incidentiq"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:7-alpine
-    container_name: incidentiq-redis
-    restart: always
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  api:
+  backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: incidentiq-api
+    container_name: incidentiq-backend
     restart: always
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/incidentiq
+      - DATABASE_URL=sqlite+aiosqlite:///./incidentiq.db
       - REDIS_URL=redis://redis:6379/0
-      - ENVIRONMENT=development
+      - SECRET_KEY=SECRET_DEV_KEY_INCIDENTIQ_SUPER_SAFE_CHANGE_IN_PROD_12345
+    volumes:
+      - ./backend/data:/app/data
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - redis
 
   frontend:
     build:
@@ -58,10 +25,22 @@ services:
     container_name: incidentiq-frontend
     restart: always
     ports:
-      - "5173:5173"
+      - "80:80"
     depends_on:
-      - api
+      - backend
 
-volumes:
-  postgres_data:
-  redis_data:
+  redis:
+    image: redis:7-alpine
+    container_name: incidentiq-redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: incidentiq-prometheus
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
