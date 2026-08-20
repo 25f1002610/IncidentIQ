@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, Activity, Terminal, GitCommit, FileText, Cpu, AlertCircle, CheckCircle2, Clock, Play, ShieldAlert, Sparkles, Users, Check, BookOpen, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { X, Activity, Terminal, GitCommit, Cpu, CheckCircle2, Play, Sparkles, Users, Check, BookOpen, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Incident, LogEntry, MetricEntry, CommitInfo } from '../types';
 
 interface IncidentDetailModalProps {
@@ -13,7 +13,6 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({ incide
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [metrics, setMetrics] = useState<MetricEntry[]>([]);
   const [commit, setCommit] = useState<CommitInfo | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
   const [investigating, setInvestigating] = useState<boolean>(false);
   const [currentIncident, setCurrentIncident] = useState<Incident>(incident);
   const [findings, setFindings] = useState<any>(null);
@@ -21,7 +20,6 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({ incide
   const [approving, setApproving] = useState<boolean>(false);
 
   const fetchTelemetry = async () => {
-    setLoading(true);
     try {
       const [logsRes, metricsRes, deployRes] = await Promise.all([
         fetch(`/api/v1/simulator/logs/${currentIncident.id}`),
@@ -45,8 +43,6 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({ incide
       }
     } catch (err) {
       console.error('Failed to load telemetry', err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -384,7 +380,7 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({ incide
                   <div style={{ background: '#05070d', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '1rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                       <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                        Runbook: {currentIncident.service_id.replace('-', ' ').title()} Operations
+                        Runbook: {currentIncident.service_id.replace(/-/g, ' ').toUpperCase()} Operations
                       </span>
                       <span className="badge" style={{ background: 'rgba(59,130,246,0.15)', color: '#93c5fd' }}>
                         Relevance: 94%
