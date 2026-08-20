@@ -3,6 +3,12 @@ import { ShieldAlert, AlertTriangle, Activity, CheckCircle2, Plus, Clock, Cpu, Z
 import { Incident, IncidentSeverity, IncidentStatus, ScenarioInfo } from './types';
 import { IncidentDetailModal } from './components/IncidentDetailModal';
 
+const DEFAULT_SCENARIOS: ScenarioInfo[] = [
+  { id: 'DB_CONN_EXHAUSTION', title: 'PostgreSQL Connection Pool Exhaustion', service_id: 'user-db-service', severity: 'CRITICAL', description: 'Simulates active pool limits reached and HTTP 500 error rate spikes.' },
+  { id: 'BAD_DEPLOY_MEMORY_LEAK', title: 'Unclosed Session Memory Leak', service_id: 'auth-service', severity: 'HIGH', description: 'Simulates heap memory accumulation post-release causing OOMKilled.' },
+  { id: 'EXTERNAL_API_TIMEOUT', title: 'Stripe Gateway Latency & 504 Timeouts', service_id: 'payment-service', severity: 'MEDIUM', description: 'Simulates 504 Gateway Timeouts from third-party payment vendor.' }
+];
+
 export const App: React.FC = () => {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -16,8 +22,8 @@ export const App: React.FC = () => {
   const [formService, setFormService] = useState('auth-service');
   const [formSeverity, setFormSeverity] = useState<IncidentSeverity>('HIGH');
 
-  // Simulator scenarios
-  const [scenarios, setScenarios] = useState<ScenarioInfo[]>([]);
+  // Simulator scenarios initialized with defaults
+  const [scenarios, setScenarios] = useState<ScenarioInfo[]>(DEFAULT_SCENARIOS);
   const [selectedScenario, setSelectedScenario] = useState<string>('DB_CONN_EXHAUSTION');
 
   const fetchIncidents = async () => {
@@ -39,7 +45,9 @@ export const App: React.FC = () => {
       const res = await fetch('/api/v1/simulator/scenarios');
       if (res.ok) {
         const data = await res.json();
-        setScenarios(data);
+        if (Array.isArray(data) && data.length > 0) {
+          setScenarios(data);
+        }
       }
     } catch (err) {
       console.error('Failed to fetch scenarios', err);

@@ -311,3 +311,9 @@ body {
   border-color: var(--accent-primary);
   box-shadow: 0 0 0 2px var(--accent-glow);
 }
+
+.form-select option {
+  background-color: #0f172a;
+  color: #f8fafc;
+  padding: 0.5rem;
+}
