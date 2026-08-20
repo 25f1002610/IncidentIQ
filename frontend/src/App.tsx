@@ -86,8 +86,11 @@ export const App: React.FC = () => {
     }
   };
 
+  const [triggering, setTriggering] = useState<boolean>(false);
+
   const handleTriggerScenario = async (e: React.FormEvent) => {
     e.preventDefault();
+    setTriggering(true);
     try {
       const res = await fetch('/api/v1/simulator/trigger', {
         method: 'POST',
@@ -96,11 +99,17 @@ export const App: React.FC = () => {
       });
 
       if (res.ok) {
+        const data = await res.json();
         setShowSimModal(false);
-        fetchIncidents();
+        await fetchIncidents();
+        if (data.incident) {
+          setSelectedIncident(data.incident);
+        }
       }
     } catch (err) {
       console.error('Failed to trigger scenario', err);
+    } finally {
+      setTriggering(false);
     }
   };
 
@@ -282,8 +291,13 @@ export const App: React.FC = () => {
                 >
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary" style={{ background: 'linear-gradient(135deg, #f97316, #ef4444)' }}>
-                  Trigger Scenario
+                <button
+                  type="submit"
+                  disabled={triggering}
+                  className="btn-primary"
+                  style={{ background: triggering ? '#4b5563' : 'linear-gradient(135deg, #f97316, #ef4444)', cursor: triggering ? 'not-allowed' : 'pointer' }}
+                >
+                  {triggering ? 'Simulating Outage...' : 'Trigger Scenario'}
                 </button>
               </div>
             </form>
