@@ -13,9 +13,9 @@
 - [x] **Phase 10 — Human-in-the-Loop Approval Workflow**
 - [x] **Phase 11 — Remediation Execution Tools (GitHub PR, Issue, Service Restart, Config Patch)**
 - [x] **Phase 12 — Redis & Async Background Workers**
-- [ ] **Phase 13 — Self-Observability (Prometheus + Grafana + OpenTelemetry)**
-- [ ] **Phase 14 — Security, RBAC & Secret Management**
-- [ ] **Phase 15 — AI Benchmark & Evaluation Pipeline**
+- [x] **Phase 13 — Self-Observability (Prometheus + Grafana + OpenTelemetry)**
+- [x] **Phase 14 — Security, RBAC & Secret Management**
+- [x] **Phase 15 — AI Benchmark & Evaluation Pipeline**
 - [ ] **Phase 16 — Docker Productionization**
 - [ ] **Phase 17 — CI/CD Pipeline**
 - [ ] **Phase 18 — Cloud Readiness & AWS Architecture**
