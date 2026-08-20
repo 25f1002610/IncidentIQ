@@ -16,9 +16,9 @@
 - [x] **Phase 13 — Self-Observability (Prometheus + Grafana + OpenTelemetry)**
 - [x] **Phase 14 — Security, RBAC & Secret Management**
 - [x] **Phase 15 — AI Benchmark & Evaluation Pipeline**
-- [ ] **Phase 16 — Docker Productionization**
-- [ ] **Phase 17 — CI/CD Pipeline**
-- [ ] **Phase 18 — Cloud Readiness & AWS Architecture**
+- [x] **Phase 16 — Docker Productionization**
+- [x] **Phase 17 — CI/CD Pipeline (GitHub Actions)**
+- [x] **Phase 18 — Cloud Readiness & AWS Architecture Blueprint**
 - [ ] **Phase 19 — AWS Cost Optimization**
 - [ ] **Phase 20 — Production Hardening**
 - [ ] **Phase 21 — Final Benchmark & Reporting**
