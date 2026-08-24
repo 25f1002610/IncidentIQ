@@ -6,6 +6,7 @@ class ScenarioType(str, enum.Enum):
     DB_CONN_EXHAUSTION = "DB_CONN_EXHAUSTION"
     BAD_DEPLOY_MEMORY_LEAK = "BAD_DEPLOY_MEMORY_LEAK"
     EXTERNAL_API_TIMEOUT = "EXTERNAL_API_TIMEOUT"
+    NORTHSTAR_FINANCE_EXPOSURE = "NORTHSTAR_FINANCE_EXPOSURE"
 
 
 SCENARIOS: Dict[ScenarioType, Dict[str, Any]] = {
@@ -92,6 +93,34 @@ SCENARIOS: Dict[ScenarioType, Dict[str, Any]] = {
             "message": "refactor: Update Stripe SDK to v14.2",
             "timestamp": "1 hour ago",
             "diff": "- client = StripeClient(timeout=3.0)\n+ client = StripeClient() # default indefinite timeout"
+        }
+    },
+    ScenarioType.NORTHSTAR_FINANCE_EXPOSURE: {
+        "id": ScenarioType.NORTHSTAR_FINANCE_EXPOSURE,
+        "title": "Northstar Finance Excessive API Data Exposure",
+        "service_id": "northstar-finance",
+        "severity": "CRITICAL",
+        "description": "Unauthenticated API endpoint /api/profile leaks raw user objects with plaintext passwords and account balances.",
+        "affected_service": "northstar-finance",
+        "expected_root_cause": "Spread operator { ...u } in server.js line 52 exposing raw user model including plaintext password and role",
+        "logs": [
+            {"level": "INFO", "source": "northstar-finance", "message": "Server running at http://localhost:3005"},
+            {"level": "WARN", "source": "northstar-finance", "message": "Received GET /api/profile?userId=1 from unauthenticated client"},
+            {"level": "ERROR", "source": "northstar-finance", "message": "SECURITY_ALERT: Response body contains unmasked field 'password': 'Arjun@123'"},
+            {"level": "ERROR", "source": "northstar-finance", "message": "EXPOSED_ENDPOINT: /api/debug and /api/config leaking JWT secret 'northstar-development-secret'"},
+        ],
+        "metrics": {
+            "unauthorized_api_access_count": [10, 45, 120, 450, 1200, 3400],
+            "data_exposure_bytes": [450, 1800, 8900, 34000, 98000, 240000],
+            "http_200_rate_percentage": [99.5, 99.8, 100.0, 100.0, 100.0, 100.0],
+            "cpu_usage_percent": [12, 15, 18, 22, 25, 28]
+        },
+        "commit": {
+            "hash": "c3f81e9",
+            "author": "pavanakarthik12",
+            "message": "feat: expose profile metadata endpoint and debug config",
+            "timestamp": "30 minutes ago",
+            "diff": "- res.json({ id: u.id, name: u.name, balance: u.balance });\n+ res.json({ ...u }); // intentional excessive exposure"
         }
     }
 }

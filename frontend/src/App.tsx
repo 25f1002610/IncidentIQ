@@ -4,6 +4,7 @@ import { Incident, IncidentSeverity, IncidentStatus, ScenarioInfo } from './type
 import { IncidentDetailModal } from './components/IncidentDetailModal';
 
 const DEFAULT_SCENARIOS: ScenarioInfo[] = [
+  { id: 'NORTHSTAR_FINANCE_EXPOSURE', title: 'Northstar Finance Excessive API Data Exposure', service_id: 'northstar-finance', severity: 'CRITICAL', description: 'Unauthenticated API endpoint /api/profile leaks raw user objects with plaintext passwords.' },
   { id: 'DB_CONN_EXHAUSTION', title: 'PostgreSQL Connection Pool Exhaustion', service_id: 'user-db-service', severity: 'CRITICAL', description: 'Database connection pool utilization reached 98%. Active queries blocked; 500 error spike detected.' },
   { id: 'BAD_DEPLOY_MEMORY_LEAK', title: 'Unclosed Session Memory Leak', service_id: 'auth-service', severity: 'HIGH', description: 'RAM consumption steadily escalated from 450MB to 3.8GB following deployment v2.4.1.' },
   { id: 'EXTERNAL_API_TIMEOUT', title: 'Stripe Gateway Latency & 504 Timeouts', service_id: 'payment-service', severity: 'MEDIUM', description: 'HTTP 504 Gateway Timeout errors spike on checkout. Latency exceeds 8,000ms.' }
