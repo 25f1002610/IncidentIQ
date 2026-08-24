@@ -148,6 +148,27 @@ export const App: React.FC = () => {
     }
   };
 
+  const [auditingProj, setAuditingProj] = useState<string | null>(null);
+
+  const handleRunLiveAudit = async (projectId: string) => {
+    setAuditingProj(projectId);
+    try {
+      const res = await fetch(`/api/v1/projects/${projectId}/audit-live`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        await fetchIncidents();
+        await fetchProjects();
+        setSelectedProjectFilter(projectId);
+        setViewMode('dashboard');
+      }
+    } catch (err) {
+      console.error('Failed to run live audit', err);
+    } finally {
+      setAuditingProj(null);
+    }
+  };
+
   const handleTriggerScenario = async (e: React.FormEvent) => {
     e.preventDefault();
     setTriggering(true);
@@ -494,6 +515,14 @@ export const App: React.FC = () => {
                   </div>
 
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      className="btn-secondary"
+                      style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem', color: 'var(--accent-primary)', borderColor: 'var(--accent-glow)' }}
+                      disabled={auditingProj === proj.id}
+                      onClick={() => handleRunLiveAudit(proj.id)}
+                    >
+                      {auditingProj === proj.id ? 'Scanning Code...' : '⚡ Run Live Audit'}
+                    </button>
                     {proj.repository_url && (
                       <a
                         href={proj.repository_url}
@@ -513,7 +542,7 @@ export const App: React.FC = () => {
                         setViewMode('dashboard');
                       }}
                     >
-                      Inspect Incidents
+                      Incidents
                     </button>
                   </div>
                 </div>
