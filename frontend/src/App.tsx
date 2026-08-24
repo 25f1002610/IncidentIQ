@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { ShieldAlert, Activity, Plus, Zap, ArrowRight, Layers, FileCode, AlertOctagon } from 'lucide-react';
-import { Incident, IncidentSeverity, IncidentStatus, ScenarioInfo } from './types';
+import { ShieldAlert, Plus, Zap, ArrowRight, FolderPlus, ExternalLink, Filter, Server } from 'lucide-react';
+import { Incident, IncidentSeverity, IncidentStatus, ScenarioInfo, ProjectInfo } from './types';
 import { IncidentDetailModal } from './components/IncidentDetailModal';
 
 const DEFAULT_SCENARIOS: ScenarioInfo[] = [
@@ -11,23 +11,47 @@ const DEFAULT_SCENARIOS: ScenarioInfo[] = [
 ];
 
 export const App: React.FC = () => {
-  const [viewMode, setViewMode] = useState<'landing' | 'dashboard' | 'architecture' | 'reports'>('landing');
+  const [viewMode, setViewMode] = useState<'landing' | 'dashboard' | 'projects' | 'architecture' | 'reports'>('dashboard');
   const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [projects, setProjects] = useState<ProjectInfo[]>([]);
+  const [selectedProjectFilter, setSelectedProjectFilter] = useState<string>('ALL');
+  
   const [loading, setLoading] = useState<boolean>(true);
   const [showModal, setShowModal] = useState<boolean>(false);
+  const [showProjectModal, setShowProjectModal] = useState<boolean>(false);
   const [showSimModal, setShowSimModal] = useState<boolean>(false);
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
   
   // Create Manual Incident state
   const [formTitle, setFormTitle] = useState('');
   const [formDescription, setFormDescription] = useState('');
-  const [formService, setFormService] = useState('auth-service');
+  const [formService, setFormService] = useState('northstar-finance');
   const [formSeverity, setFormSeverity] = useState<IncidentSeverity>('HIGH');
+
+  // Register New Project state
+  const [projId, setProjId] = useState('');
+  const [projName, setProjName] = useState('');
+  const [projRepo, setProjRepo] = useState('');
+  const [projStack, setProjStack] = useState('Node.js / Express');
+  const [projDesc, setProjDesc] = useState('');
+  const [registeringProj, setRegisteringProj] = useState(false);
 
   // Simulator scenarios
   const [scenarios, setScenarios] = useState<ScenarioInfo[]>(DEFAULT_SCENARIOS);
-  const [selectedScenario, setSelectedScenario] = useState<string>('DB_CONN_EXHAUSTION');
+  const [selectedScenario, setSelectedScenario] = useState<string>('NORTHSTAR_FINANCE_EXPOSURE');
   const [triggering, setTriggering] = useState<boolean>(false);
+
+  const fetchProjects = async () => {
+    try {
+      const res = await fetch('/api/v1/projects');
+      if (res.ok) {
+        const data = await res.json();
+        setProjects(data || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch projects', err);
+    }
+  };
 
   const fetchIncidents = async () => {
     try {
@@ -58,9 +82,43 @@ export const App: React.FC = () => {
   };
 
   useEffect(() => {
+    fetchProjects();
     fetchIncidents();
     fetchScenarios();
   }, []);
+
+  const handleRegisterProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!projId || !projName) return;
+    setRegisteringProj(true);
+
+    try {
+      const res = await fetch('/api/v1/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: projId.toLowerCase().replace(/\s+/g, '-'),
+          name: projName,
+          repository_url: projRepo,
+          tech_stack: projStack,
+          description: projDesc,
+        }),
+      });
+
+      if (res.ok) {
+        setShowProjectModal(false);
+        setProjId('');
+        setProjName('');
+        setProjRepo('');
+        setProjDesc('');
+        await fetchProjects();
+      }
+    } catch (err) {
+      console.error('Failed to register project', err);
+    } finally {
+      setRegisteringProj(false);
+    }
+  };
 
   const handleCreateIncident = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,7 +140,8 @@ export const App: React.FC = () => {
         setShowModal(false);
         setFormTitle('');
         setFormDescription('');
-        fetchIncidents();
+        await fetchIncidents();
+        await fetchProjects();
       }
     } catch (err) {
       console.error('Failed to create incident', err);
@@ -103,6 +162,7 @@ export const App: React.FC = () => {
         const data = await res.json();
         setShowSimModal(false);
         await fetchIncidents();
+        await fetchProjects();
         if (data.incident) {
           setSelectedIncident(data.incident);
           setViewMode('dashboard');
@@ -135,8 +195,12 @@ export const App: React.FC = () => {
     return <span className="badge" style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>{status.replace(/_/g, ' ')}</span>;
   };
 
-  const activeCount = incidents.filter(i => i.status !== 'RESOLVED').length;
-  const criticalCount = incidents.filter(i => i.severity === 'CRITICAL' && i.status !== 'RESOLVED').length;
+  const filteredIncidents = selectedProjectFilter === 'ALL'
+    ? incidents
+    : incidents.filter(i => i.service_id === selectedProjectFilter);
+
+  const activeCount = filteredIncidents.filter(i => i.status !== 'RESOLVED').length;
+  const criticalCount = filteredIncidents.filter(i => i.severity === 'CRITICAL' && i.status !== 'RESOLVED').length;
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-primary)' }}>
@@ -150,11 +214,11 @@ export const App: React.FC = () => {
           </div>
 
           <nav className="nav-links">
-            <button className={`nav-link ${viewMode === 'landing' ? 'active' : ''}`} onClick={() => setViewMode('landing')}>
-              Product
-            </button>
             <button className={`nav-link ${viewMode === 'dashboard' ? 'active' : ''}`} onClick={() => setViewMode('dashboard')}>
               Dashboard
+            </button>
+            <button className={`nav-link ${viewMode === 'projects' ? 'active' : ''}`} onClick={() => setViewMode('projects')}>
+              Projects ({projects.length})
             </button>
             <button className={`nav-link ${viewMode === 'architecture' ? 'active' : ''}`} onClick={() => setViewMode('architecture')}>
               Architecture
@@ -166,8 +230,8 @@ export const App: React.FC = () => {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <button className="btn-secondary" style={{ fontSize: '0.8rem' }} onClick={() => setViewMode('dashboard')}>
-            Explore Console
+          <button className="btn-secondary" style={{ fontSize: '0.8rem' }} onClick={() => setShowProjectModal(true)}>
+            <FolderPlus size={14} /> Add Project
           </button>
           <button className="btn-primary" onClick={() => setShowSimModal(true)}>
             Analyze Repository
@@ -178,13 +242,11 @@ export const App: React.FC = () => {
       {/* VIEW 1: LANDING PAGE */}
       {viewMode === 'landing' && (
         <div style={{ flex: 1 }}>
-          
-          {/* Hero Section */}
           <section style={{ maxWidth: 1280, margin: '0 auto', padding: '5rem 2rem 4rem 2rem', display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: '4rem', alignItems: 'center' }}>
             <div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', padding: '0.3rem 0.75rem', borderRadius: 4, fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '1.5rem' }} className="mono">
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-primary)' }}></span>
-                ENGINEERING INTELLIGENCE PLATFORM
+                MULTI-PROJECT AI OPERATIONS PLATFORM
               </div>
 
               <h1 style={{ fontSize: '3.6rem', fontWeight: 700, lineHeight: 1.08, letterSpacing: '-0.03em', color: 'var(--text-primary)', marginBottom: '1.5rem' }}>
@@ -192,29 +254,28 @@ export const App: React.FC = () => {
               </h1>
 
               <p style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', lineHeight: 1.6, maxWidth: 520, marginBottom: '2.5rem' }}>
-                IncidentIQ analyzes code, dependencies, architecture, and operational telemetry signals to identify and resolve root causes before expensive production outages.
+                IncidentIQ connects across your software microservices, analyzing code, dependencies, architecture, and operational telemetry signals to diagnose production outages in seconds.
               </p>
 
               <div style={{ display: 'flex', gap: '1rem' }}>
                 <button className="btn-primary" style={{ padding: '0.75rem 1.5rem', fontSize: '0.95rem' }} onClick={() => setShowSimModal(true)}>
                   Analyze Repository <ArrowRight size={16} />
                 </button>
-                <button className="btn-secondary" style={{ padding: '0.75rem 1.5rem', fontSize: '0.95rem' }} onClick={() => setViewMode('dashboard')}>
-                  Explore Platform
+                <button className="btn-secondary" style={{ padding: '0.75rem 1.5rem', fontSize: '0.95rem' }} onClick={() => setViewMode('projects')}>
+                  Manage Connected Projects
                 </button>
               </div>
             </div>
 
-            {/* Simulated Live System Analysis Card */}
+            {/* Simulated System Analysis Card */}
             <div className="panel" style={{ padding: '1.75rem', background: 'var(--bg-surface)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '1rem', borderBottom: '1px solid var(--border-color)', marginBottom: '1.25rem' }}>
                 <div style={{ fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.08em', color: 'var(--text-muted)' }} className="mono">
-                  SYSTEM ANALYSIS / breaksmith-core
+                  PORTFOLIO AUDIT / northstar-finance
                 </div>
                 <div className="badge badge-high">73 ELEVATED RISK</div>
               </div>
 
-              {/* Gauge Bar */}
               <div style={{ marginBottom: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '0.5rem' }}>
                   <span className="text-secondary">SYSTEM RISK GAUGE</span>
@@ -242,115 +303,20 @@ export const App: React.FC = () => {
 
               <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem', background: 'var(--bg-primary)', borderRadius: 4 }}>
-                  <span className="mono" style={{ fontSize: '0.78rem' }}>src/auth/session.ts</span>
-                  <span className="badge badge-critical">Unsafe Fallback</span>
+                  <span className="mono" style={{ fontSize: '0.78rem' }}>server.js:L52 (northstar-finance)</span>
+                  <span className="badge badge-critical">Plaintext Password Leak</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem', background: 'var(--bg-primary)', borderRadius: 4 }}>
-                  <span className="mono" style={{ fontSize: '0.78rem' }}>services/api/client.ts</span>
-                  <span className="badge badge-high">Unbounded Retry</span>
+                  <span className="mono" style={{ fontSize: '0.78rem' }}>user-db-service</span>
+                  <span className="badge badge-high">Connection Exhaustion</span>
                 </div>
               </div>
             </div>
           </section>
-
-          {/* Section 01: Problem Statement */}
-          <section style={{ borderTop: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}>
-            <div style={{ maxWidth: 1280, margin: '0 auto', padding: '5rem 2rem' }}>
-              <div style={{ textAlign: 'center', maxWidth: 640, margin: '0 auto 3.5rem auto' }}>
-                <h2 style={{ fontSize: '2.4rem', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: '1rem' }}>
-                  Fast code creates slow failures.
-                </h2>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '1rem' }}>
-                  Modern development velocity introduces subtle architectural coupling, version drift, and unhandled edge cases that evade unit tests.
-                </p>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem', alignItems: 'center' }}>
-                {['Code generated', 'Dependencies added', 'Architecture evolves', 'Complexity compounds', 'Production failure'].map((step, idx) => (
-                  <React.Fragment key={idx}>
-                    <div className="panel" style={{ padding: '1.25rem 1rem', textAlign: 'center', background: idx === 4 ? 'rgba(240,91,91,0.06)' : 'var(--bg-primary)', borderColor: idx === 4 ? 'var(--color-critical)' : 'var(--border-color)' }}>
-                      <div className="mono" style={{ fontSize: '0.75rem', color: idx === 4 ? 'var(--color-critical)' : 'var(--accent-primary)', marginBottom: '0.4rem' }}>0{idx + 1}</div>
-                      <div style={{ fontSize: '0.9rem', fontWeight: 600, color: idx === 4 ? 'var(--color-critical)' : 'var(--text-primary)' }}>{step}</div>
-                    </div>
-                  </React.Fragment>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* Section 02: What BreakSmith Sees */}
-          <section style={{ maxWidth: 1280, margin: '0 auto', padding: '5rem 2rem' }}>
-            <div style={{ marginBottom: '3rem' }}>
-              <div className="mono" style={{ fontSize: '0.78rem', color: 'var(--accent-primary)', marginBottom: '0.5rem' }}>ANALYTICAL COVERAGE</div>
-              <h2 style={{ fontSize: '2.2rem', fontWeight: 700 }}>What BreakSmith Sees</h2>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
-              <div className="panel">
-                <FileCode size={20} color="var(--accent-primary)" style={{ marginBottom: '1rem' }} />
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.75rem' }}>Code Risk</h3>
-                <ul style={{ listStyleType: 'none', fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                  <li>• Cyclomatic Complexity</li>
-                  <li>• Unhandled Exec Paths</li>
-                  <li>• Silent Exceptions</li>
-                  <li>• Dead Code Vectors</li>
-                </ul>
-              </div>
-
-              <div className="panel">
-                <Layers size={20} color="var(--accent-primary)" style={{ marginBottom: '1rem' }} />
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.75rem' }}>Architecture</h3>
-                <ul style={{ listStyleType: 'none', fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                  <li>• Dependency Chains</li>
-                  <li>• Tight Service Coupling</li>
-                  <li>• Single Points of Failure</li>
-                  <li>• Circular References</li>
-                </ul>
-              </div>
-
-              <div className="panel">
-                <AlertOctagon size={20} color="var(--accent-primary)" style={{ marginBottom: '1rem' }} />
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.75rem' }}>Dependencies</h3>
-                <ul style={{ listStyleType: 'none', fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                  <li>• Version Instability</li>
-                  <li>• Known CVE Exposure</li>
-                  <li>• Abandoned Packages</li>
-                  <li>• License Conflicts</li>
-                </ul>
-              </div>
-
-              <div className="panel">
-                <Activity size={20} color="var(--accent-primary)" style={{ marginBottom: '1rem' }} />
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.75rem' }}>Behavior</h3>
-                <ul style={{ listStyleType: 'none', fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                  <li>• Connection Pools</li>
-                  <li>• Heap Accumulation</li>
-                  <li>• Retry Amplification</li>
-                  <li>• Latency Degradation</li>
-                </ul>
-              </div>
-            </div>
-          </section>
-
-          {/* Section 03: Final Call to Action */}
-          <section style={{ borderTop: '1px solid var(--border-color)', background: 'var(--bg-surface)', padding: '5rem 2rem', textAlign: 'center' }}>
-            <div style={{ maxWidth: 600, margin: '0 auto' }}>
-              <h2 style={{ fontSize: '2.4rem', fontWeight: 700, marginBottom: '1rem' }}>
-                Understand your system before it breaks.
-              </h2>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
-                Run deep static and behavioral risk audits across your software repositories.
-              </p>
-              <button className="btn-primary" style={{ padding: '0.8rem 1.8rem', fontSize: '1rem', margin: '0 auto' }} onClick={() => setShowSimModal(true)}>
-                Analyze Your Repository
-              </button>
-            </div>
-          </section>
-
         </div>
       )}
 
-      {/* VIEW 2: DASHBOARD VIEW */}
+      {/* VIEW 2: DASHBOARD VIEW WITH MULTI-PROJECT FILTERING */}
       {viewMode === 'dashboard' && (
         <div style={{ flex: 1, maxWidth: 1400, width: '100%', margin: '0 auto', padding: '2rem' }}>
           
@@ -358,50 +324,43 @@ export const App: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
             <div>
               <div className="mono" style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
-                PROJECTS / breaksmith-core / ANALYSIS OVERVIEW
+                PORTFOLIO / {selectedProjectFilter === 'ALL' ? 'ALL CONNECTED PROJECTS' : selectedProjectFilter} / INCIDENTS
               </div>
-              <h2 style={{ fontSize: '1.6rem', fontWeight: 700 }}>System Health & Risk Intelligence</h2>
+              <h2 style={{ fontSize: '1.6rem', fontWeight: 700 }}>System Health & Operational Incidents</h2>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            {/* Project Filter Switcher */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', padding: '0.4rem 0.75rem', borderRadius: 4 }}>
+                <Filter size={14} color="var(--text-muted)" />
+                <span className="mono" style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>PROJECT:</span>
+                <select
+                  style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', fontSize: '0.82rem', outline: 'none', cursor: 'pointer' }}
+                  value={selectedProjectFilter}
+                  onChange={(e) => setSelectedProjectFilter(e.target.value)}
+                >
+                  <option value="ALL">All Projects ({projects.length})</option>
+                  {projects.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <button className="btn-secondary" onClick={() => setShowSimModal(true)}>
-                <Zap size={15} color="var(--accent-primary)" /> Simulate Infrastructure Outage
+                <Zap size={15} color="var(--accent-primary)" /> Simulate Outage
               </button>
               <button className="btn-primary" onClick={() => setShowModal(true)}>
-                <Plus size={15} /> Create Risk Report
+                <Plus size={15} /> New Incident
               </button>
-            </div>
-          </div>
-
-          {/* Risk Score Horizontal Gauge */}
-          <div className="panel" style={{ marginBottom: '2rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
-              <div>
-                <div className="mono" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>SYSTEM RISK AUDIT</div>
-                <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--accent-primary)', display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
-                  73 <span style={{ fontSize: '1rem', color: 'var(--text-muted)', fontWeight: 400 }}>/ 100 SCORE</span>
-                </div>
-              </div>
-              <div className="badge badge-high">ELEVATED SYSTEM RISK</div>
-            </div>
-
-            <div style={{ height: 10, background: 'var(--bg-primary)', borderRadius: 4, overflow: 'hidden', position: 'relative', marginBottom: '1rem' }}>
-              <div style={{ width: '73%', height: '100%', background: 'linear-gradient(to right, #4FD18B, #F3C969, #FF6B3D)' }}></div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }} className="mono">
-              <span>0 (LOW RISK)</span>
-              <span>25 (MODERATE)</span>
-              <span>50 (HIGH)</span>
-              <span className="text-accent">73 (ELEVATED)</span>
-              <span>100 (CRITICAL)</span>
             </div>
           </div>
 
           {/* Metric Stats Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
             <div className="panel">
-              <div className="mono" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>ACTIVE FINDINGS</div>
+              <div className="mono" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>ACTIVE INCIDENTS</div>
               <div style={{ fontSize: '1.8rem', fontWeight: 700, color: activeCount > 0 ? 'var(--accent-primary)' : 'var(--text-primary)' }}>
                 {activeCount}
               </div>
@@ -415,9 +374,9 @@ export const App: React.FC = () => {
             </div>
 
             <div className="panel">
-              <div className="mono" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>SWARM AGENTS</div>
+              <div className="mono" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>CONNECTED PROJECTS</div>
               <div style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--color-info)' }}>
-                6 Active Nodes
+                {projects.length} Services
               </div>
             </div>
 
@@ -429,31 +388,31 @@ export const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Findings Table */}
+          {/* Incidents Table */}
           <div className="panel">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Detected Risk Findings</h3>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }} className="mono">{incidents.length} ENTRIES</span>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Detected Risk Incidents</h3>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }} className="mono">{filteredIncidents.length} ENTRIES</span>
             </div>
 
             {loading ? (
               <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }} className="mono">
-                Loading analytical repository findings...
+                Loading incidents...
               </div>
-            ) : incidents.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '3rem', background: 'var(--bg-primary)', borderRadius: 4, border: '1px border var(--border-color)' }}>
+            ) : filteredIncidents.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem', background: 'var(--bg-primary)', borderRadius: 4, border: '1px solid var(--border-color)' }}>
                 <ShieldAlert size={36} color="var(--text-muted)" style={{ marginBottom: '0.75rem' }} />
-                <h4 style={{ marginBottom: '0.4rem' }}>No Active Risk Findings</h4>
+                <h4 style={{ marginBottom: '0.4rem' }}>No Active Incidents for Selected Project</h4>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '1.25rem' }}>
-                  All systems operating within normal parameters. Run an outage scenario to test risk detection.
+                  All systems operating normally. Trigger an outage scenario to test multi-agent diagnosis.
                 </p>
                 <button className="btn-primary" style={{ margin: '0 auto' }} onClick={() => setShowSimModal(true)}>
-                  <Zap size={15} /> Simulate Outage Scenario
+                  <Zap size={15} /> Trigger Outage Test
                 </button>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {incidents.map((incident) => (
+                {filteredIncidents.map((incident) => (
                   <div
                     key={incident.id}
                     style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 4, padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', transition: 'border-color var(--transition-fast)' }}
@@ -466,7 +425,7 @@ export const App: React.FC = () => {
                       <div>
                         <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>{incident.title}</div>
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                          Service: <span className="mono" style={{ color: 'var(--text-secondary)' }}>{incident.service_id}</span>
+                          Target Project: <span className="mono" style={{ color: 'var(--accent-primary)' }}>{incident.service_id}</span>
                         </div>
                       </div>
                     </div>
@@ -485,41 +444,108 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* VIEW 3: ARCHITECTURE VISUALIZATION */}
+      {/* VIEW 3: MULTI-PROJECT PORTFOLIO MATRIX VIEW */}
+      {viewMode === 'projects' && (
+        <div style={{ flex: 1, maxWidth: 1400, width: '100%', margin: '0 auto', padding: '2rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+            <div>
+              <div className="mono" style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>MULTI-PROJECT PORTFOLIO</div>
+              <h2 style={{ fontSize: '1.6rem', fontWeight: 700 }}>Connected Software Projects ({projects.length})</h2>
+            </div>
+
+            <button className="btn-primary" onClick={() => setShowProjectModal(true)}>
+              <FolderPlus size={16} /> Register New Project
+            </button>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat( auto-fill, minmax(380px, 1fr) )', gap: '1.5rem' }}>
+            {projects.map((proj) => (
+              <div key={proj.id} className="panel" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                    <div>
+                      <div className="mono" style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>ID: {proj.id}</div>
+                      <h3 style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '0.1rem' }}>{proj.name}</h3>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 700, color: proj.health_score > 70 ? 'var(--color-success)' : 'var(--accent-primary)' }} className="mono">
+                        {proj.health_score}% HEALTH
+                      </div>
+                    </div>
+                  </div>
+
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+                    {proj.description}
+                  </p>
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                    <span className="badge" style={{ background: 'var(--bg-primary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>
+                      <Server size={12} /> {proj.tech_stack || 'Microservice'}
+                    </span>
+                    <span className="badge" style={{ background: 'var(--bg-primary)', color: 'var(--accent-primary)', border: '1px solid var(--border-color)' }}>
+                      Team: {proj.owner_team || 'Core Dev'}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }} className="mono">
+                    Active Incidents: <strong style={{ color: proj.active_incidents_count > 0 ? 'var(--accent-primary)' : 'var(--text-primary)' }}>{proj.active_incidents_count}</strong>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {proj.repository_url && (
+                      <a
+                        href={proj.repository_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn-secondary"
+                        style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem', textDecoration: 'none' }}
+                      >
+                        GitHub <ExternalLink size={12} />
+                      </a>
+                    )}
+                    <button
+                      className="btn-primary"
+                      style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem' }}
+                      onClick={() => {
+                        setSelectedProjectFilter(proj.id);
+                        setViewMode('dashboard');
+                      }}
+                    >
+                      Inspect Incidents
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 4: ARCHITECTURE VISUALIZATION */}
       {viewMode === 'architecture' && (
         <div style={{ flex: 1, maxWidth: 1280, width: '100%', margin: '0 auto', padding: '2rem' }}>
           <div style={{ marginBottom: '2rem' }}>
             <div className="mono" style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>SYSTEM TOPOLOGY</div>
-            <h2 style={{ fontSize: '1.6rem', fontWeight: 700 }}>Interactive Service & Dependency Graph</h2>
+            <h2 style={{ fontSize: '1.6rem', fontWeight: 700 }}>Connected Project Dependency Graph</h2>
           </div>
 
           <div className="panel" style={{ padding: '3rem', textAlign: 'center', background: 'var(--bg-surface)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem', alignItems: 'center', maxWidth: 900, margin: '0 auto' }}>
-              
-              <div className="panel" style={{ background: 'var(--bg-primary)' }}>
-                <div className="mono" style={{ fontSize: '0.72rem', color: 'var(--accent-primary)', marginBottom: '0.4rem' }}>FRONTEND GATEWAY</div>
-                <h4 style={{ fontSize: '1rem', fontWeight: 600 }}>checkout-ui</h4>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.4rem' }} className="mono">React 18 / Nginx</div>
-              </div>
-
-              <div className="panel" style={{ background: 'var(--bg-primary)', border: '1px solid var(--accent-primary)' }}>
-                <div className="mono" style={{ fontSize: '0.72rem', color: 'var(--color-critical)', marginBottom: '0.4rem' }}>API SERVICE</div>
-                <h4 style={{ fontSize: '1rem', fontWeight: 600 }}>user-db-service</h4>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.4rem' }} className="mono">PostgreSQL / Connection Pool</div>
-              </div>
-
-              <div className="panel" style={{ background: 'var(--bg-primary)' }}>
-                <div className="mono" style={{ fontSize: '0.72rem', color: 'var(--color-warning)', marginBottom: '0.4rem' }}>AUTH MICROSERVICE</div>
-                <h4 style={{ fontSize: '1rem', fontWeight: 600 }}>auth-service</h4>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.4rem' }} className="mono">Node.js / Memory Usage</div>
-              </div>
-
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem', alignItems: 'center', maxWidth: 960, margin: '0 auto' }}>
+              {projects.slice(0, 6).map((proj) => (
+                <div key={proj.id} className="panel" style={{ background: 'var(--bg-primary)', border: proj.id === 'northstar-finance' ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)' }}>
+                  <div className="mono" style={{ fontSize: '0.72rem', color: proj.id === 'northstar-finance' ? 'var(--color-critical)' : 'var(--accent-primary)', marginBottom: '0.4rem' }}>{proj.tech_stack || 'MICROSERVICE'}</div>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 600 }}>{proj.name}</h4>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.4rem' }} className="mono">{proj.id}</div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       )}
 
-      {/* VIEW 4: REPORTS VIEW */}
+      {/* VIEW 5: REPORTS VIEW */}
       {viewMode === 'reports' && (
         <div style={{ flex: 1, maxWidth: 1280, width: '100%', margin: '0 auto', padding: '2rem' }}>
           <div style={{ marginBottom: '2rem' }}>
@@ -533,7 +559,7 @@ export const App: React.FC = () => {
                 <div style={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.1em', color: '#FF6B3D' }} className="mono">
                   INCIDENTIQ ENGINEERING AUDIT REPORT
                 </div>
-                <h2 style={{ fontSize: '1.8rem', fontWeight: 800, marginTop: '0.4rem' }}>Repository Risk Findings</h2>
+                <h2 style={{ fontSize: '1.8rem', fontWeight: 800, marginTop: '0.4rem' }}>Portfolio Security & Risk Audit</h2>
               </div>
               <div style={{ textAlign: 'right', fontSize: '0.85rem' }} className="mono">
                 <div>REPORT ID: #AN-29481</div>
@@ -543,22 +569,22 @@ export const App: React.FC = () => {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem', marginBottom: '2.5rem' }}>
               <div style={{ border: '1px solid #E2E8F0', padding: '1rem', borderRadius: 4 }}>
-                <div style={{ fontSize: '0.75rem', color: '#64748B' }} className="mono">OVERALL HEALTH SCORE</div>
-                <div style={{ fontSize: '2rem', fontWeight: 800, color: '#FF6B3D' }}>73 / 100</div>
+                <div style={{ fontSize: '0.75rem', color: '#64748B' }} className="mono">CONNECTED PROJECTS</div>
+                <div style={{ fontSize: '2rem', fontWeight: 800, color: '#FF6B3D' }}>{projects.length}</div>
               </div>
               <div style={{ border: '1px solid #E2E8F0', padding: '1rem', borderRadius: 4 }}>
-                <div style={{ fontSize: '0.75rem', color: '#64748B' }} className="mono">CRITICAL FINDINGS</div>
+                <div style={{ fontSize: '0.75rem', color: '#64748B' }} className="mono">CRITICAL ALERTS</div>
                 <div style={{ fontSize: '2rem', fontWeight: 800, color: '#F05B5B' }}>04</div>
               </div>
               <div style={{ border: '1px solid #E2E8F0', padding: '1rem', borderRadius: 4 }}>
-                <div style={{ fontSize: '0.75rem', color: '#64748B' }} className="mono">ANALYZED FILES</div>
-                <div style={{ fontSize: '2rem', fontWeight: 800, color: '#080A0D' }}>127</div>
+                <div style={{ fontSize: '0.75rem', color: '#64748B' }} className="mono">ANALYZED REPOSITORIES</div>
+                <div style={{ fontSize: '2rem', fontWeight: 800, color: '#080A0D' }}>{projects.length}</div>
               </div>
             </div>
 
             <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '1rem' }}>Executive Summary</h3>
             <p style={{ color: '#334155', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '2rem' }}>
-              IncidentIQ performed a static and behavioral risk audit over repository <strong>northstar-finance</strong>. The analysis identified 42 actionable engineering findings across 127 files. Key vulnerabilities include excessive API data exposure on `/api/profile` and exposed JWT secret credentials.
+              IncidentIQ performed a static and behavioral risk audit across {projects.length} connected software repositories (including <strong>northstar-finance</strong> and <strong>memora-backend</strong>). The analysis identified actionable engineering findings across microservice endpoints, plaintext password exposures, and connection pool thresholds.
             </p>
           </div>
         </div>
@@ -569,11 +595,102 @@ export const App: React.FC = () => {
         <IncidentDetailModal
           incident={selectedIncident}
           onClose={() => setSelectedIncident(null)}
-          onRefreshIncident={fetchIncidents}
+          onRefreshIncident={() => {
+            fetchIncidents();
+            fetchProjects();
+          }}
         />
       )}
 
-      {/* Simulator Outage Trigger Modal */}
+      {/* MODAL 1: REGISTER NEW PROJECT MODAL */}
+      {showProjectModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3 style={{ marginBottom: '1.25rem', fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <FolderPlus size={18} color="var(--accent-primary)" /> Register External Project into IncidentIQ
+            </h3>
+            <form onSubmit={handleRegisterProject}>
+              <div className="form-group">
+                <label className="form-label">Service Identifier (Slug)</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g., memora-backend or auth-api"
+                  value={projId}
+                  onChange={(e) => setProjId(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Project Name</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g., Memora Intelligence Engine"
+                  value={projName}
+                  onChange={(e) => setProjName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">GitHub Repository URL</label>
+                <input
+                  type="url"
+                  className="form-input"
+                  placeholder="e.g., https://github.com/Vijaykumar5623/Memora"
+                  value={projRepo}
+                  onChange={(e) => setProjRepo(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Technology Stack</label>
+                <select
+                  className="form-select"
+                  value={projStack}
+                  onChange={(e) => setProjStack(e.target.value)}
+                >
+                  <option value="Node.js / Express">Node.js / Express</option>
+                  <option value="Python / FastAPI">Python / FastAPI</option>
+                  <option value="Python / Flask">Python / Flask</option>
+                  <option value="React / Next.js">React / Next.js</option>
+                  <option value="Go / Gin">Go / Gin</option>
+                  <option value="Java / Spring Boot">Java / Spring Boot</option>
+                  <option value="PostgreSQL / Redis">PostgreSQL / Redis</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Description</label>
+                <textarea
+                  className="form-textarea"
+                  rows={2}
+                  placeholder="Short description of service responsibility..."
+                  value={projDesc}
+                  onChange={(e) => setProjDesc(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setShowProjectModal(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" disabled={registeringProj} className="btn-primary">
+                  {registeringProj ? 'Registering...' : 'Connect Project'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: SIMULATOR OUTAGE TRIGGER MODAL */}
       {showSimModal && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -627,11 +744,11 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* New Manual Incident Modal */}
+      {/* MODAL 3: NEW MANUAL INCIDENT MODAL */}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h3 style={{ marginBottom: '1.25rem', fontSize: '1.1rem', fontWeight: 600 }}>Create Risk Findings Entry</h3>
+            <h3 style={{ marginBottom: '1.25rem', fontSize: '1.1rem', fontWeight: 600 }}>Create Risk Incident</h3>
             <form onSubmit={handleCreateIncident}>
               <div className="form-group">
                 <label className="form-label">Incident Title</label>
@@ -646,14 +763,18 @@ export const App: React.FC = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Affected Service</label>
-                <input
-                  type="text"
-                  className="form-input"
+                <label className="form-label">Target Project Service</label>
+                <select
+                  className="form-select"
                   value={formService}
                   onChange={(e) => setFormService(e.target.value)}
-                  required
-                />
+                >
+                  {projects.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.id})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="form-group">

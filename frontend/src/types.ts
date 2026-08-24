@@ -18,6 +18,18 @@ export interface Service {
   created_at: string;
 }
 
+export interface ProjectInfo {
+  id: string;
+  name: string;
+  description?: string;
+  owner_team?: string;
+  repository_url?: string;
+  tech_stack?: string;
+  active_incidents_count: number;
+  critical_incidents_count: number;
+  health_score: number;
+}
+
 export interface Incident {
   id: string;
   title: string;
