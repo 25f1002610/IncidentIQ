@@ -145,8 +145,8 @@ export const App: React.FC = () => {
       <header className="nav-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '2.5rem' }}>
           <div className="brand-mark" onClick={() => setViewMode('landing')}>
-            <div className="brand-badge">B</div>
-            <span>BREAKSMITH</span>
+            <div className="brand-badge" style={{ background: 'var(--accent-primary)', color: '#080A0D' }}>IQ</div>
+            <span>Incident<span style={{ color: 'var(--accent-primary)' }}>IQ</span></span>
           </div>
 
           <nav className="nav-links">
@@ -192,7 +192,7 @@ export const App: React.FC = () => {
               </h1>
 
               <p style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', lineHeight: 1.6, maxWidth: 520, marginBottom: '2.5rem' }}>
-                BreakSmith analyzes code, dependencies, architecture, and behavioral signals to identify risks before they become expensive production incidents.
+                IncidentIQ analyzes code, dependencies, architecture, and operational telemetry signals to identify and resolve root causes before expensive production outages.
               </p>
 
               <div style={{ display: 'flex', gap: '1rem' }}>
@@ -531,7 +531,7 @@ export const App: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #080A0D', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
               <div>
                 <div style={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.1em', color: '#FF6B3D' }} className="mono">
-                  BREAKSMITH ENGINEERING AUDIT REPORT
+                  INCIDENTIQ ENGINEERING AUDIT REPORT
                 </div>
                 <h2 style={{ fontSize: '1.8rem', fontWeight: 800, marginTop: '0.4rem' }}>Repository Risk Findings</h2>
               </div>
@@ -558,7 +558,7 @@ export const App: React.FC = () => {
 
             <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '1rem' }}>Executive Summary</h3>
             <p style={{ color: '#334155', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '2rem' }}>
-              BreakSmith performed a static and behavioral risk audit over repository <strong>breaksmith-core</strong>. The analysis identified 42 actionable engineering findings across 127 files. Key vulnerabilities include database connection pool exhaustion under unindexed JOIN queries and unbounded HTTP retry logic.
+              IncidentIQ performed a static and behavioral risk audit over repository <strong>northstar-finance</strong>. The analysis identified 42 actionable engineering findings across 127 files. Key vulnerabilities include excessive API data exposure on `/api/profile` and exposed JWT secret credentials.
             </p>
           </div>
         </div>
