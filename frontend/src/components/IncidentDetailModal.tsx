@@ -196,12 +196,12 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({ incide
           {/* SINGLE AGENT & HUMAN APPROVAL TAB */}
           {activeTab === 'investigation' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.1), rgba(168,85,247,0.1))', border: '1px solid var(--border-glow)', borderRadius: 'var(--radius-md)', padding: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, fontSize: '1.05rem', color: 'var(--text-primary)' }}>
-                    <Sparkles size={18} color="var(--accent-primary)" /> Autonomous Root Cause Investigator
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, fontSize: '1rem', color: 'var(--text-primary)' }}>
+                    <Sparkles size={16} color="var(--accent-primary)" /> Autonomous Root Cause Investigator
                   </div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
                     Executes LogSearchTool, MetricsTool, GitHubTool, and RAGSearchTool.
                   </div>
                 </div>
@@ -209,12 +209,12 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({ incide
                   className="btn-primary"
                   onClick={handleRunInvestigation}
                   disabled={investigating}
-                  style={{ background: investigating ? '#4b5563' : 'linear-gradient(135deg, #6366f1, #a855f7)', cursor: investigating ? 'not-allowed' : 'pointer' }}
+                  style={{ background: investigating ? 'var(--border-color)' : 'var(--accent-primary)', color: '#080A0D', cursor: investigating ? 'not-allowed' : 'pointer' }}
                 >
                   {investigating ? (
-                    <>Running AI Analysis...</>
+                    <>Analyzing Code & Risk...</>
                   ) : (
-                    <><Play size={16} /> Run AI Investigation</>
+                    <><Play size={15} /> Run Analysis Engine</>
                   )}
                 </button>
               </div>
